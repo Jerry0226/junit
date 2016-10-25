@@ -109,7 +109,10 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
                         
                         junitCoverDir = System.getProperty("junitCoverDir");
                         jacocoAddress = System.getProperty("jacocoAddress");
-                        jacocoPort = Integer.valueOf(System.getProperty("jacocoPort").trim());
+                        if (System.getProperty("jacocoPort") != null) {
+                            jacocoPort = Integer.valueOf(System.getProperty("jacocoPort").trim());
+                        }
+                        
                     }
                     else {
                         String[] list = str.split(" ");

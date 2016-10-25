@@ -3,11 +3,14 @@ package org.junit.runners;
 import static org.junit.internal.runners.rules.RuleMemberValidator.RULE_METHOD_VALIDATOR;
 import static org.junit.internal.runners.rules.RuleMemberValidator.RULE_VALIDATOR;
 
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
+import org.jacoco.core.tools.ExecDumpClient;
+import org.jacoco.core.tools.ExecFileLoader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -75,17 +78,73 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
     @Override
     protected void runChild(final FrameworkMethod method, RunNotifier notifier) {
         Description description = describeChild(method);
+        String className = getTestClass().getName();
+        String methodName = method.getName();
         if (isIgnored(method)) {
             notifier.fireTestIgnored(description);
         } else {
-            Statement statement;
+            
             try {
-                statement = methodBlock(method);
+                
+                Statement statement;
+                try {
+                    statement = methodBlock(method);
+                }
+                catch (Throwable ex) {
+                    statement = new Fail(ex);
+                }
+                runLeaf(statement, description, notifier);
             }
-            catch (Throwable ex) {
-                statement = new Fail(ex);
+            finally {
+                try {
+                    
+                    String junitCoverDir = null;
+                    int jacocoPort = 0;
+                    String jacocoAddress = null;
+                    
+                    
+                    //增加对jacoco的数据dump处理
+                    String str = System.getProperty("sun.java.command");
+                    if (str == null) {
+                        
+                        junitCoverDir = System.getProperty("junitCoverDir");
+                        jacocoAddress = System.getProperty("jacocoAddress");
+                        jacocoPort = Integer.valueOf(System.getProperty("jacocoPort").trim());
+                    }
+                    else {
+                        String[] list = str.split(" ");
+                        for(String agrsValue: list) {
+                            if (agrsValue.contains("junitCoverDir=")) {
+                                junitCoverDir = agrsValue.substring(agrsValue.indexOf("=") + 1);
+                            }
+                            if (agrsValue.contains("jacocoPort=")) {
+                                String jacocoportStr = agrsValue.substring(agrsValue.indexOf("=") + 1);
+                                jacocoPort = Integer.valueOf(jacocoportStr.trim());
+                            }
+                            if (agrsValue.contains("jacocoAddress=")) {
+                                jacocoAddress = agrsValue.substring(agrsValue.indexOf("=") + 1);
+                            }
+                        }
+                    }
+                    
+                    
+                    if (junitCoverDir != null) {
+                        System.out.println("jacoco_" + className + "-" + methodName + ".exec");
+                        ExecDumpClient execdump = new ExecDumpClient();
+                        ExecFileLoader fileloader = execdump.dump(jacocoAddress != null ? jacocoAddress : "localhost", jacocoPort != 0 ? jacocoPort : 6300);
+                        File file = new File(junitCoverDir);
+                        if (!file.exists()) {
+                            file.mkdirs();
+                        }
+                        File fileCase = new File(junitCoverDir + "/jacoco_" + className + "-" + methodName + ".exec");
+                        fileloader.save(fileCase, false);
+                    }
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-            runLeaf(statement, description, notifier);
+            
         }
     }
 

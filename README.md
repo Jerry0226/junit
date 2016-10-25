@@ -1,6 +1,8 @@
 # JUnit 4
 JUnit is a simple framework to write repeatable tests. It is an instance of the xUnit architecture for unit testing frameworks.
 
+-- 针对代码关联用例优化改造，实现和jacoco的高度集成
+
 For more information, please visit:
 * [Wiki](https://github.com/junit-team/junit/wiki)
 * [Download and Install guide](https://github.com/junit-team/junit/wiki/Download-and-Install)
